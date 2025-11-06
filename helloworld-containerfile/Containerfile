@@ -1,44 +1,45 @@
 FROM registry.access.redhat.com/ubi8/python-312
 
-# Set work directory
 WORKDIR /opt/app-root/
-
-# Copy Python Project Files (Container context must be the `python` directory)
-COPY . /opt/app-root
 
 USER root
 
-# Install system build dependencies and UV package manager
-RUN dnf -y update && dnf install -y gcc gcc-c++ \
- && pip install uv
+# Install system dependencies
+RUN dnf -y update && \
+    dnf install -y gcc gcc-c++ && \
+    dnf clean all
 
-# Set environment variables for uv:
-# UV_COMPILE_BYTECODE=1: Compiles Python files to .pyc for faster startup
-# UV_LINK_MODE=copy: Ensures files are copied, not symlinked, which can avoid issues
+# Install UV using pip and ensure it's in PATH
+RUN pip3 install --upgrade pip && \
+    pip3 install uv && \
+    ln -sf $(python3 -m site --user-base)/bin/uv /usr/local/bin/uv || \
+    ln -sf /usr/local/bin/uv /usr/bin/uv || true
+
+# Verify UV is available
+RUN uv --version
+
+# Copy application files
+COPY . /opt/app-root
+
+# Set environment variables
 ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_CACHE_DIR=/opt/app-root/.cache/uv \
+    PATH="/opt/app-root/.venv/bin:${PATH}"
 
-# Install dependencies using uv sync.
-# --frozen: Ensures uv respects the uv.lock file
-# --no-install-project: Prevents installing the project itself in this stage
-# --no-dev: Excludes development dependencies
-# --mount=type=cache: Leverages Docker's build cache for uv, speeding up repeated builds
-RUN --mount=type=cache,target=/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+# Create necessary directories
+RUN mkdir -p /opt/app-root/.cache/uv
 
-# Install the project
-RUN --mount=type=cache,target=/.cache/uv \
+# Install dependencies
+RUN uv sync --frozen --no-install-project --no-dev && \
     uv sync --frozen --no-dev
 
-# Allow non-root user to access the everything in app-root
-# RUN chgrp -R root /opt/app-root/ && chmod -R g+rwx /opt/app-root/
-# RUN chgrp -R root /opt/app-root || true \
-# && chmod -R g+rwx /opt/app-root || true
- 
-# Expose default port (change if needed)
+# Set permissions
+RUN chgrp -R root /opt/app-root/ && \
+    chmod -R g+rwx /opt/app-root/
+
 EXPOSE 9999
 
 USER 1001
 
-# Run the agent
-CMD uv run . --host 0.0.0.0
+CMD ["uv", "run", ".", "--host", "0.0.0.0"]
