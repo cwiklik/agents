@@ -10,17 +10,36 @@ RUN dnf -y update && \
 
 COPY . /opt/app-root/
 
+# DEBUG: List what was copied
+RUN echo "=== Files in /opt/app-root ===" && \
+    ls -la /opt/app-root/ && \
+    echo "=== Checking __main__.py ===" && \
+    test -f /opt/app-root/__main__.py && echo "File exists!" || echo "File NOT found!"
+
 RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir -e .
 
+# DEBUG: List again after pip install
+RUN echo "=== After pip install ===" && \
+    ls -la /opt/app-root/
+
 RUN chgrp -R 0 /opt/app-root && \
     chmod -R g+rwX /opt/app-root
+
+# DEBUG: Check permissions
+RUN ls -la /opt/app-root/__main__.py || echo "__main__.py missing after chmod"
 
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 9999
 
 USER 1001
+
+# DEBUG: Check as user 1001
+RUN echo "=== As user 1001 ===" && \
+    ls -la /opt/app-root/ && \
+    pwd && \
+    ls -la /opt/app-root/__main__.py || echo "__main__.py not accessible"
 
 CMD ["python3", "__main__.py"]
 
