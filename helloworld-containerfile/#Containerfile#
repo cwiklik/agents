@@ -1,12 +1,3 @@
-FROM registry.access.redhat.com/ubi8/python-312
-
-WORKDIR /opt/app-root
-
-USER root
-
-RUN dnf -y update && \
-    dnf install -y gcc gcc-c++ && \
-    dnf clean all
 
 COPY . /opt/app-root/
 
