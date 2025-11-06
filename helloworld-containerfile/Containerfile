@@ -9,11 +9,8 @@ RUN dnf -y update && \
     dnf install -y gcc gcc-c++ && \
     dnf clean all
 
-# Copy UV binary from official image
+# Copy UV from official container
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-# Verify UV is available
-RUN uv --version
 
 # Copy application files
 COPY . /opt/app-root
@@ -21,14 +18,15 @@ COPY . /opt/app-root
 # Set environment variables
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_CACHE_DIR=/opt/app-root/.cache/uv
+    UV_CACHE_DIR=/opt/app-root/.cache/uv \
+    VIRTUAL_ENV=/opt/app-root/.venv \
+    PATH="/opt/app-root/.venv/bin:${PATH}"
 
 # Create necessary directories
 RUN mkdir -p /opt/app-root/.cache/uv
 
 # Install dependencies
-RUN uv sync --frozen --no-install-project --no-dev && \
-    uv sync --frozen --no-dev
+RUN /usr/local/bin/uv sync --frozen --no-dev
 
 # Set permissions
 RUN chgrp -R root /opt/app-root/ && \
@@ -38,4 +36,6 @@ EXPOSE 9999
 
 USER 1001
 
-CMD ["/usr/local/bin/uv", "run", ".", "--host", "0.0.0.0"]
+# Run __main__.py directly
+CMD ["python", "__main__.py"]
+
