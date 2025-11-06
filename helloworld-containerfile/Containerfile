@@ -1,55 +1,35 @@
 FROM registry.access.redhat.com/ubi8/python-312
 
-# Set working directory
 WORKDIR /opt/app-root
 
 USER root
 
-# Install system dependencies
+# Install build dependencies
 RUN dnf -y update && \
     dnf install -y gcc gcc-c++ && \
     dnf clean all
 
-# Copy UV from official container - guaranteed to work
+# Install UV from official image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Verify UV is installed and executable
-RUN /usr/local/bin/uv --version
-
-# Copy application files BEFORE installing dependencies
+# Copy project files
 COPY . /opt/app-root/
 
-# Set UV environment variables
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_CACHE_DIR=/opt/app-root/.cache/uv
+# Install dependencies using UV but let it use system python
+RUN /usr/local/bin/uv pip install --system -r pyproject.toml
 
-# Create cache directory
-RUN mkdir -p /opt/app-root/.cache/uv
+# OR if you have requirements.txt
+# RUN /usr/local/bin/uv pip install --system -r requirements.txt
 
-# Install dependencies - this creates /opt/app-root/.venv
-RUN /usr/local/bin/uv sync --frozen --no-dev
-
-# Verify virtual environment was created
-RUN test -f /opt/app-root/.venv/bin/python || (echo "Virtual environment not created!" && exit 1)
-
-# Verify __main__.py exists
-RUN test -f /opt/app-root/__main__.py || (echo "__main__.py not found!" && exit 1)
-
-# Set permissions for OpenShift compatibility
-# User 1001 must be able to read/execute everything
+# Set OpenShift-compatible permissions
 RUN chgrp -R 0 /opt/app-root && \
-    chmod -R g=u /opt/app-root && \
     chmod -R g+rwX /opt/app-root
 
-# Set environment for runtime
-ENV VIRTUAL_ENV=/opt/app-root/.venv \
-    PATH="/opt/app-root/.venv/bin:${PATH}" \
-    PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 9999
 
 USER 1001
 
-# Use absolute paths for both python and the script
-CMD ["/opt/app-root/.venv/bin/python", "/opt/app-root/__main__.py"]
+# Use system python3
+CMD ["python3", "__main__.py"]
