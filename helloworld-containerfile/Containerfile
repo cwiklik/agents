@@ -6,14 +6,13 @@ USER root
 
 # Install system dependencies
 RUN dnf -y update && \
-    dnf install -y gcc gcc-c++ && \
+    dnf install -y gcc gcc-c++ curl && \
     dnf clean all
 
-# Install UV using pip and ensure it's in PATH
-RUN pip3 install --upgrade pip && \
-    pip3 install uv && \
-    ln -sf $(python3 -m site --user-base)/bin/uv /usr/local/bin/uv || \
-    ln -sf /usr/local/bin/uv /usr/bin/uv || true
+# Install UV globally using the official installer
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --no-modify-path && \
+    cp /root/.cargo/bin/uv /usr/local/bin/uv && \
+    chmod 755 /usr/local/bin/uv
 
 # Verify UV is available
 RUN uv --version
@@ -24,8 +23,7 @@ COPY . /opt/app-root
 # Set environment variables
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_CACHE_DIR=/opt/app-root/.cache/uv \
-    PATH="/opt/app-root/.venv/bin:${PATH}"
+    UV_CACHE_DIR=/opt/app-root/.cache/uv
 
 # Create necessary directories
 RUN mkdir -p /opt/app-root/.cache/uv
@@ -42,4 +40,5 @@ EXPOSE 9999
 
 USER 1001
 
-CMD ["uv", "run", ".", "--host", "0.0.0.0"]
+# Use absolute path
+CMD ["/usr/local/bin/uv", "run", ".", "--host", "0.0.0.0"]
