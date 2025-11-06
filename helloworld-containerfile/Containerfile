@@ -6,13 +6,11 @@ USER root
 
 # Install system dependencies
 RUN dnf -y update && \
-    dnf install -y gcc gcc-c++ curl && \
+    dnf install -y gcc gcc-c++ && \
     dnf clean all
 
-# Install UV globally using the official installer
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --no-modify-path && \
-    cp /root/.cargo/bin/uv /usr/local/bin/uv && \
-    chmod 755 /usr/local/bin/uv
+# Copy UV binary from official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Verify UV is available
 RUN uv --version
@@ -40,5 +38,4 @@ EXPOSE 9999
 
 USER 1001
 
-# Use absolute path
 CMD ["/usr/local/bin/uv", "run", ".", "--host", "0.0.0.0"]
