@@ -9,4 +9,5 @@ ENV PATH="/app/.venv/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
     PRODUCTION_MODE=True \
     RELEASE_VERSION=${RELEASE_VERSION}
-CMD ["uv", "run", "--no-sync", "server"]
+#CMD ["uv", "run", "--no-sync", "server"]
+CMD ["python", "-c", "from weather_service.agent import run; run()"]
