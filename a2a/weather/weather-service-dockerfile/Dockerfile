@@ -6,6 +6,7 @@ COPY . .
 RUN uv sync --no-cache --locked --link-mode copy
 ENV PATH="/app/.venv/bin:$PATH" \
     VIRTUAL_ENV="/app/.venv" \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
     PRODUCTION_MODE=True \
     RELEASE_VERSION=${RELEASE_VERSION}
 CMD ["uv", "run", "--no-sync", "server"]
