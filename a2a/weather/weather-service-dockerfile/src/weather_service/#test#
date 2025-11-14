@@ -1,0 +1,11 @@
+cwiklik@mac weather_tool %
+cwiklik@mac weather_tool % kc logs test-weather-mcpserver-0 -n kagenti
+Traceback (most recent call last):
+  File "/app/weather_tool.py", line 37, in <module>
+    run_server()
+  File "/app/weather_tool.py", line 34, in run_server
+    mcp.run(transport=transport)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py", line 226, in run
+    raise ValueError(f"Unknown transport: {transport}")
+ValueError: Unknown transport: streamable_http
